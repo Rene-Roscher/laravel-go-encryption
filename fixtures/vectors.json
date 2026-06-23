@@ -1,0 +1,77 @@
+{
+    "key_b64": "KysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKys=",
+    "vectors": [
+        {
+            "name": "aes-256-cbc/simple",
+            "cipher": "aes-256-cbc",
+            "plaintext": "Hello, World!",
+            "payload": "eyJpdiI6IitxK3V4TkNWQlp1bUoxYTI2RjU0WVE9PSIsInZhbHVlIjoiT3ZnUElPZXBoeU5GNHlONlhuZTByQT09IiwibWFjIjoiNzk1MDY4NmQyYmNkMjM4YmQ2NzA2ZWEzZGM2YjIwY2QwOTAyYjNlMDA2OGU4M2EwNGE0YThlNGUyYzdiM2FkMSIsInRhZyI6IiJ9"
+        },
+        {
+            "name": "aes-256-cbc/empty",
+            "cipher": "aes-256-cbc",
+            "plaintext": "",
+            "payload": "eyJpdiI6IkNhRmt2NjNmVjJIM0k5ZUxlbnJRY1E9PSIsInZhbHVlIjoiRWtwMUhBWHdlbXlYbDFFaFY4QStnQT09IiwibWFjIjoiZjY1NTdmNzA3Y2NkYjRlNmNiNjJjZDk0MWQzNGE0OTA4Y2NkNGJmNmZjZjA4OGYxYzEyY2EwMzhkYzBmYTU3OCIsInRhZyI6IiJ9"
+        },
+        {
+            "name": "aes-256-cbc/unicode",
+            "cipher": "aes-256-cbc",
+            "plaintext": "Gr\u00fc\u00dfe \u4e16\u754c \ud83d\ude80 caf\u00e9",
+            "payload": "eyJpdiI6IjB5VVZ6TGF2MG5CUXJyRU1TM0ZpMGc9PSIsInZhbHVlIjoiMWw1VW9mWTMyV0FOS0RVN1dCdElWVmczZndiRWd5Y3NVYmtZRmY1SlMxaz0iLCJtYWMiOiIxYWRiMmJkNDU0MmMzZjZiZDQ3MGU4ZGVhZmM2ODljNWEyMzgwMGYzOTZkN2UzMDQyYmQ5ZTMwMDQ0YzlkNDExIiwidGFnIjoiIn0="
+        },
+        {
+            "name": "aes-256-cbc/json",
+            "cipher": "aes-256-cbc",
+            "plaintext": "{\"user\":\"alice\",\"id\":7,\"active\":true,\"tags\":[\"x\",\"y\"]}",
+            "payload": "eyJpdiI6IktXc2QwQ0s3Q1Z6SWFhNUczanN4OVE9PSIsInZhbHVlIjoiVWMrWGFVNDhVeGt2dXlnVmJOUUFoOXhDeFIwVFdKQS9wZXpFMnBtNmIzUS9VdytZazFaaWlTWFRSYVdWMDd5NktDN2JzdGg4ME5MeEJrYTdycFg0N3c9PSIsIm1hYyI6IjI0ZGIxMjk3OTdlY2ZhNTYwZGJiNGVjODg5YjM0MDcyYTA4Mzk1OWI0MjczODlhZWE0MDhiZGUwNmY3ZGM2NDQiLCJ0YWciOiIifQ=="
+        },
+        {
+            "name": "aes-256-cbc/multiline",
+            "cipher": "aes-256-cbc",
+            "plaintext": "first line\nsecond line\n\tindented\n",
+            "payload": "eyJpdiI6IklKYXhlSkhqR3lNakwrTnhqbGxCVEE9PSIsInZhbHVlIjoiUEpkeERGc04vbnloMTNUWlZwMHp3V1dDZnMyaHo1c2ZucGViWlZGMjJOODFCOGRwRE4wSzNnRG9vdE40Z3JQNiIsIm1hYyI6ImZjNzgxZmNkYTg1ZDA1ZmM4OGVjOGZhNjU4ZDQ3MzdkMzcxMzNiZTJjOTQ2ZTdhNzc2YzRmNzlkYzRiNzgyZGIiLCJ0YWciOiIifQ=="
+        },
+        {
+            "name": "aes-256-cbc/long",
+            "cipher": "aes-256-cbc",
+            "plaintext": "The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 ",
+            "payload": "eyJpdiI6InNKakd5WFhSbzBjRlNyT3h6YmJlM3c9PSIsInZhbHVlIjoicmgvaS8yanNic2NpTUY2anRFbjd0ejFIYngydTZvVTJTcGV0OVBSV3NiTHRyNktLd2lPYkxiZTdiRExuRG84cnlqdjJvblltVjhPT1RyZUo5VVVJUEtobkxZYmZNQjBWVTF4aElOTEJqdzBMTTNWT1VodDlnanBsbVVxNEhWcGc4aWVzeDNKNnNRODRITEhXbnFHZ2NMTHhKazM2N0VnT2FRdWQ2VFd0cFlveUtYeSswR040MDRQSDYwM3JCeWFZMVJLQWU2eS9HR3BJY1RxYjRsZHBJVUJZRWQrSUgreEp0bmxIUG4vMW43UHVDR1RWUjI2Ynl5aXlvZCsycHdiZ3FlL3JjR2VJVzE5aW9PdVJKZ3dDTUFDYk14cHc4UG1NMkY3bWdZdnA0UWxFcWlFNEpEKyttYlZUUjljUkRoc0Nja2dxMGN2cHpEMGpZVUQ5S1d4NzhBZUdrWHRJVVU1K3ZLdWJoVWtqUWZJQkJVaEQ5aUJiSFBrY0FacGtsQytyZGVrK0JHWFhpTTFiVEFtN2U5M1lUZjZtWGhMWmIvQmIweE5ObG1FZ2c2dW0rQ2RQQndJR0lPQTF0T2x2bkVlTlBxbUM4TDErMkFtNlRHYnBIWElKY3E0MzJNR3BqQ2VyNG5ERm5WQmZmYkhPL05iV1BKSmFtRXVpOGVHUHBrZEZNMzFiOVhiMDVmajN3c2VxU3owZ0szQjZnNHR5ZVJjS0xUTC94SkluNEhkc0tmaHBRSFFNTHZvRXVINVl3N2FCMEdDT0F0cFRUWVJPYmk5UVBQRGhvdURRaUJFUUw4cXNHd1gyZ2tFRHVqRmFDQ2hvSTZSRkp2Q1BuRFZ0UTVFRHhycldMcmpCdWlIQzBLb2ZxM0FtY21EdEFjaWlUbld5aUtYZEFKWDdkVXk0TGg3ZFpHNzk4VFdZb0tpNmgxeWNMb21tVGxXdmxHbEVYNG5COFRpc0RGanhGSG93SzFwNFNsNDM2aFJWZVgwTzZGa2hiaFNKQzdMNS9jeW51aUVMbit1cGtBbnNVeWVGZHFad0pPeFY5RGZzSXlxUDI3ZVlTVzZ5UW5idjY1RTZVTnhDcWdCWG1EWlN5aGowMEdnQTdmelQ4S2VYUDJXL0RjSEQzZzhjWDFnbjhKMFFkY1dSUkgwbnFFUXd4UTdtVXRLM1plSSthVVd1QWpBSUtsNHVJQUw4M3ZGWmFQRmwvN2UrOEVYVUdtUUNoSUl5K0p5U0lZNUc1dys2cUFLRGtUSjIvRDcyejJ0djk0RTlmUFhMLzJLT2hEd1U2ak1kWHFGRWtVWkxCblEvNThBUzloU3dtWTUybEwzaEEySCthamthMnpDdmFKK2pjb05BaWd6c0REV0FjWE5iWllGbDNkb1pPeEFxNjdyeS9UQkRlT2kyTnZsenE1TG8vcm5wdG95aFZrb3pRVXVTd1BObnpzblh5anZlMU4rdCsyaldIekVWOWdqbnlwV2VMbU4xQzRHc1JHdkhwdmZoT0tRcndkcXZFM2F6WmdKbEgySHhFVTZRcWQrSUFDeDhYa1Y1U1F1Mi83eWwyQ1AvaE5FekgxOTY5a0ZwdUFYdkJRc0pIM2NwamY2Wm0xS0grNklFcUU4Z3lOakxUc28wZmdHeVZGNUZsQ1E0bkt3UkxvRWRrVDlxNXFmalozeUd2SjRQS1V4YTY4ZW4xRm1ZcjBIbjQyVkgrdkQ1dTdISTcxL1FnUURHVmppMDVWc1M1NjVjd3piZWVVWE16Y01MT2k0dUkwd3JwLzlOeGpiaW5ITUtUU2lNU285dDdVcGJ1YmRIVzl3aFovR3A0ZHNpUzdUQmF0VmRyK0NvaEJhdlJTYUdvWFZ1eTFsT3VzZFBIZEhmbDlId3prNjVpTzJXdHl0dVlvbGpjN1JJeUpiS3J1ZTJnUkJHckZHajg1S2J2bjBGTitGZmVJT1ZZbTJsYm1WdVFvTU5ZMnZidUF3YmVWalJpQmQ4cm53cHRwNm14enFIQXZ4N0dwY2dGU0JzNllUSFZnek1JcGRDN0w4WnBsVC9Gd013RWNFbjc0MG1GUUt5WWhsUnZqd09BcWo1N1A3WG9PaDdvUmcyM0lRc2xrQlhpVW1aMzFtYUhiUzRaYnhyczB2VEp0cnNxZG5RODNGTmQrRkZjUmRwMjBNYjJvK2Z5Z0pFOUJub2VySHlsL052QlcrV1BKWWdjOUFFcG5BNmdwZWYxOXpFNkY1ZWZ0Y01NYU14Z3B6Vm9iUDVPb2JrSnY3eXBLMmxwNVY3YmVLLzNMeUdEeG5CZWNTM0FmTWR0b1JDazh5VkJqNlg0L1R2ZklLMVZ1MjdZN1U2WnlxQWdEdVJQbW9tTlVTeWEzV0FtYzhkTHU1MkJaVEJVTTFLRkJXOCsvMUlURlc5YUpwOG05WWsrdTAySndSeVJTQWd3MC9XUFpOd1dYVVhHMGZXbVJRY0QwcTVvK1M5MklRTzZQUjV6T3JuWUM2dlpPdzROS2tPSmVxZ05GVkF2SlBvWkMyVkJjUGJVSTRjK0Q0cTJWaUJINU9kdSt3Q2VZVitDZVZBQnlpeHAvQ1hWdnp5dFVXT05Fd1RlSkxxdVpLaVBPN0xZcGZqb29QLzdxd2U1TzJNOENXRnArWmQ4UG5zKzNtVkg3SjZXS2x3WGpMSFBTUU1WTjc3NDhvSEljYWZJWGFVOXpEOTdxSENtYm0yRk9KWmZYWmNFZXpnWFNlZUNMMjl6ZWs2NEhoSmNlMG44czFQc0pHYXp3PT0iLCJtYWMiOiI1MjQ2MDJkNWJmZGQwMWZhMmVmMzllZmY2YTQ4YmE3YzlhMDNmYjdlMDY2NTk2OTUzZDVlZTZhYmJhYzg4OGYxIiwidGFnIjoiIn0="
+        },
+        {
+            "name": "aes-256-gcm/simple",
+            "cipher": "aes-256-gcm",
+            "plaintext": "Hello, World!",
+            "payload": "eyJpdiI6IjhLbHdkcmQvcDJPU2cra3EiLCJ2YWx1ZSI6Ik52ZXN5QVh6ZERCODFObTJVQT09IiwibWFjIjoiIiwidGFnIjoiZklBd2xWNG1ZbWdUdnZoMjB0RnZtdz09In0="
+        },
+        {
+            "name": "aes-256-gcm/empty",
+            "cipher": "aes-256-gcm",
+            "plaintext": "",
+            "payload": "eyJpdiI6Imt6aTMwVGc4ckNyRjBra2EiLCJ2YWx1ZSI6IiIsIm1hYyI6IiIsInRhZyI6ImVjc3hoVXdKNzZ0WGFpdGZGZ2ZoaGc9PSJ9"
+        },
+        {
+            "name": "aes-256-gcm/unicode",
+            "cipher": "aes-256-gcm",
+            "plaintext": "Gr\u00fc\u00dfe \u4e16\u754c \ud83d\ude80 caf\u00e9",
+            "payload": "eyJpdiI6ImJJdDJkQU43ZlBoQ3B6UEoiLCJ2YWx1ZSI6ImxrRVNkUWxVbTIwZC9INFNRVzdmSUR6Zk9QT0ZTVUJoa0E9PSIsIm1hYyI6IiIsInRhZyI6Ik9ydXZ6QkxrUU1IVEtYMmJCb2xnOXc9PSJ9"
+        },
+        {
+            "name": "aes-256-gcm/json",
+            "cipher": "aes-256-gcm",
+            "plaintext": "{\"user\":\"alice\",\"id\":7,\"active\":true,\"tags\":[\"x\",\"y\"]}",
+            "payload": "eyJpdiI6Im5TaVh5ZnlyWjZPcGRZWkQiLCJ2YWx1ZSI6IlJEbml0WU5LSXRqU0srL1hzQVhmTFg5NUw4RUtwOGN3cjdlVmgzb0hqakx3VlgralB5aU0xR0dwZjdTbjRVc2kyVkdRUUxEeSIsIm1hYyI6IiIsInRhZyI6IjM0RnBPemlQeEVKOTBjc1VUckhBNWc9PSJ9"
+        },
+        {
+            "name": "aes-256-gcm/multiline",
+            "cipher": "aes-256-gcm",
+            "plaintext": "first line\nsecond line\n\tindented\n",
+            "payload": "eyJpdiI6IjVhQWl5bTVYTlJ5TDlzVk8iLCJ2YWx1ZSI6InJUUExWYVFPWVVpYmNKUWxHSjV2clcva0xqVTdZbmpLM2diTVIrNVI2bFJQIiwibWFjIjoiIiwidGFnIjoiOEoyMndGeDZPakNnMUIxWk92Qjd4QT09In0="
+        },
+        {
+            "name": "aes-256-gcm/long",
+            "cipher": "aes-256-gcm",
+            "plaintext": "The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 The quick brown fox 0123456789 ",
+            "payload": "eyJpdiI6ImJJY05jOWdVcmhsajFFUzUiLCJ2YWx1ZSI6InV2Vms0ZTRGaGJ6NzVqd2hYdzVRT1hvVDE1N1JqRTMrb21WVXpVczNyY0NwR25uSVIrVVc4a2hmRmhGRTlEajdKRmd4dUtKOW9EOE9NWjUvenNOYjgvOUhhNW5oSEZJMG1NNFBaM1FtY1BiTk1kQnovQ2g3TjFuQWdmYVVhajViNWVnR0w1TDYxUWhLdURaTWpLSjZZd1ZWWWxVUnZGbnl4UkJ1V2xRVStZMVVZbFZBVEJUcktLdVdBU0hGVU9Tdyt6S3g0WURKWlQ4QWVEMEZpZm91clo2Yks2STJBRUx2TkdIUEVuOW9WdXlDeWhvZGhubThFNTR1dmpJTU5VeEpYR0FSaVNKTW9YQnNlS2FKQnBQS1FkQU9jdXNqYmZ0cHVTd2szRVlhL2J2dG9QeGFsVU4xdm0vYVc3UUVGdjU3UnBXSXUrZkw1MCtmV1VSdjRuK2NZNzl2Ui9oTTZSQ2pUWDdVOFh1ZmhlUkkwWFVyUDZXelZuWEVPbHVwWWVnL25HVVJHaWVqeXdqSGQ4L1NlNm85R3c1V2F0UEFDZWFXbzRlY2pSZkJGWXUxYXgxalJySE9vM3FPVFhwTXdiemk0Nk5pcDhvVW9DRzJSTHVrZFBrZW1wMWJIbzFGRWc3RytiRFlrS2VkOUJZUlBWeWk1VjBxcXlWMEgza2RnTlNpOVdHK0xsQ2RkbElPdE9jZzU5UDdkVitwSkJPWVRRU3gyc2dFNzE1OG9laklqbmhCUjkzN2lXSWEwVEwwTHRmR2Jhb3dJUjJxU2hET095WW5sNjhUa21SNkh2Qkx1T3V5ZHhBZVc1OFRISjBad1NLb1pnK1dIbVdSMHJpV2NwWDRtMUMvSjZjd2hvSW4wY0ZIT0FNazJIazR6MEFxTGtWd3dlL2pla3QzUTlwTzhmbkJoUlZmRmhXZFM4Z05la3YweElvTnRHcm8rWGxEakFnZG1xMkpWR1JKeHVmUmpFQkQrU0QyK3I1QzNobUZpSHh2UlhlY2kvSXI5aUNnSS82ZTVTVlpDZWM3djJ1OWNGTmtzeXc0OVRHOG5RbG9pWHcxZFE1S3lWVGFmZUR0djFiWU1tR3BaZFFYaHdPazhocFRBWmd3S0FVd05HU1NjdVEwYkNVRmdkb2RRbkN3L3I1WnVtUm95VWZ3TnlBK0RRV3hjeE40SjJJa0tFckcxR1poYVpvUnltWjlwbWFickQ3UEZNQXBrVGxWSDE1cVFGZkhZdUVnU3B0WkhvODBuV2s4SmpPT2F5T0ZxTGtaSWVMNWYrK3RoRFFxdzJHeGs4MmkxN0J6UDVUOEQ2TmY0V1JkVGRRbGpZUTJpME1hMUxWRE90RGZoZUVBcklOK2lwVUQ4RXVyVk9RcGFFOFpncERXQnFvcGZRTEpMZFUvc3p3NnV5Z1QwODR2eW5FNUptanBNc0RJU3g2Sy9VazNiZ1FkRktxNEhHcS91bzMxdTAvenpzZ0FDYTV6c3hkSGRubkxSeERqdHBFQy84R2dnTGNVcUYwZElBajNocGFyTWNpSFhpdGR5WFk4Tmo2MjhEUVUwUFBRMjZFb29IQllhN1JOWGN4VVNjVURYb080RVpGalFUakRGWnRTMG9nSkdRb01vbXg3VmJLc2paRU9lSWVLUkxoYk8vZ2lnZUJiajI1VmtLSDZkUFQwd0V3YmVkODc1cm1EQ1h5cXd1enB1U0xGQTZ6ajQ4M2ZORXBhYWxxM0RJY09EVlUvaDZZRjM4WFY3aEZrMWpOUHQzdm9uREJqa09BYmhQRWF2czh6b0JyMUdsMElRYkxmZXpTTVN5RHpjZVVVWUNWdDlyNWYyZVp1Nzc5elkrb29xcXhnVDRXR05uMW5vZ1orb0FSQXhVWE1PWW1YWVdJTUthR05zU3ZYeEtwWXFNaTJIRndQS05RYmJtWFZ3d1J6Mk45cWxXaGNraEFhS2tOZEx6ZlVjbWJSY2RKZXlFaHRtbmNXVTBrNVdzL1FYSVZKeWZSbWVjNDVYRnNqRTBKY0d0RDAyOU1JWGZqQTBvdjIwNzZBMzc3VXkrUUxZcnV3NXJ5d1BLRzh1ZVdpVlBYbzlLVW1BWm9qdkFTM1VQM3JES055czdmUkduREt5cXZkQiswU3B5V1FFNGxlNDZWZThSZk5ZWC80Q3RaUitTU3A0ckt6WERvR2JLaVNXVUZIcEdkUSs1TFVsNm94Vmk2OEkrRU9xc1pGYzUyM3FITmgyeDlaNzY2K0pQaVhyWEJZak5OSnJ0QnFZOUVaeVVveHoxZHdqaFZoK08vM2ZrUUR4Y3ZvNTJodXdKOTltTzFIVVp6ODl3OXk1b1A3Zkw4QnUzRHZxM3ErNU9vVGREY2hrTy9vSWpiRTBkOTNhbkpzajdnVjg5NG4vNlg5eGhib0tSVzFkejBFbjZmMy9RSVZkeThyY3lrbFN2MTJVVEc0NGpsUDFKWXdHMUNBcHM2eHk0T2hFT0gxV2NWMDNVaUJFN2hkZStCMUZ2RVVKU0NoWTFJc1dsdlVSMTE1cVJNdEhVWlVWaVdqR2o5VFNtWWZwZmpaWDQ4RHZwU3o1VzNoM0UzeWNVZmRIU1UxMDRwVVpHenZCN3lVT0F6WFRHSlB1L3pubndUbjkxUUF3THNJUHZuTE1mK3hmVjRlYVNXQUo3VFM3NmZTZlJ5c092b3owcml6NTFhQ1dVbms5eXZQNVhEd2JCeGZUeHpUdXZmMU1OMU1hYXlZazE2VlBiT0hUOEpSQm9JdXd5WT0iLCJtYWMiOiIiLCJ0YWciOiIyakVrdEIwa1NudGlkMzJUMjJEeTZRPT0ifQ=="
+        }
+    ]
+}

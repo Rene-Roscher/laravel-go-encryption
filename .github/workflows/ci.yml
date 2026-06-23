@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+    paths-ignore: ['**.md', 'LICENSE']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (Go ${{ matrix.go }} / ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ['1.23', '1.24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+      - run: go vet ./...
+      - run: go test -race -count=1 ./...
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      - run: go test -covermode=atomic -coverprofile=coverage.txt ./...
+      - uses: codecov/codecov-action@v4
+        with:
+          files: coverage.txt
+          fail_ci_if_error: false
+
+  interop:
+    name: Interop (Laravel ${{ matrix.laravel }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        laravel: ['11', '12', '13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: openssl, mbstring
+          tools: composer
+      - name: Install real illuminate/encryption ^${{ matrix.laravel }}
+        run: composer require "illuminate/encryption:^${{ matrix.laravel }}.0" --no-interaction --no-progress
+
+      # Laravel -> Go: PHP generates fresh vectors, Go decrypts them.
+      - name: Generate Laravel vectors
+        run: php scripts/generate_vectors.php
+      - name: Go decrypts Laravel vectors
+        run: go test -run TestDecryptLaravelVectors -v ./...
+
+      # Go -> Laravel: Go encrypts, PHP decrypts and asserts.
+      - name: Laravel decrypts Go vectors
+        run: go run ./cmd/genvectors | php scripts/verify_go_vectors.php

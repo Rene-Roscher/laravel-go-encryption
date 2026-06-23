@@ -1,0 +1,16 @@
+# PHP interop harness deps (CI installs them)
+/vendor/
+composer.lock
+
+# Go test/coverage artifacts
+*.test
+*.out
+coverage.txt
+
+# Editor/OS
+.idea/
+.vscode/
+.DS_Store
+
+# machine-generated fuzz corpus
+/testdata/fuzz/
