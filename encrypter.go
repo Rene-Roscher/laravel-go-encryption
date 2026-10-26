@@ -382,7 +382,7 @@ func phpBase64(input string, strict bool) ([]byte, bool) {
 		acc = acc<<6 | uint32(v)
 		count++
 		if count%4 == 0 {
-			out = append(out, byte(acc>>16), byte(acc>>8), byte(acc))
+			out = append(out, byte(acc>>16&0xff), byte(acc>>8&0xff), byte(acc&0xff))
 			acc = 0
 		}
 	}
@@ -390,9 +390,9 @@ func phpBase64(input string, strict bool) ([]byte, bool) {
 	// A trailing group of 2 or 3 characters yields 1 or 2 bytes; 1 character yields none.
 	switch count % 4 {
 	case 2:
-		out = append(out, byte(acc>>4))
+		out = append(out, byte(acc>>4&0xff))
 	case 3:
-		out = append(out, byte(acc>>10), byte(acc>>2))
+		out = append(out, byte(acc>>10&0xff), byte(acc>>2&0xff))
 	}
 	if strict {
 		if count%4 == 1 {
