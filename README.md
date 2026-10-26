@@ -7,7 +7,9 @@
 A Go port of Laravel's `Illuminate\Encryption\Encrypter`, **wire-compatible** with Laravel 10
 through 13. Decrypt in Go what Laravel encrypted with `Crypt` / `Encrypter`, and produce
 payloads Laravel can decrypt — sharing encrypted data seamlessly across platforms using the
-same key.
+same key. The same library exists for
+[Node.js](https://github.com/Rene-Roscher/laravel-node-encryption) and
+[Rust](https://github.com/Rene-Roscher/laravel-rust-encryption).
 
 ## Features
 
