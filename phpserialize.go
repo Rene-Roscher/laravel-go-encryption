@@ -261,6 +261,10 @@ func (d *phpDecoder) double() (any, error) {
 	case "NAN":
 		return math.NaN(), nil
 	}
+	// ParseFloat also accepts words like "inf" and "nan" and hex floats; PHP does not.
+	if v == "" || strings.Trim(v, "0123456789+-.eE") != "" {
+		return nil, errPHPSerialize
+	}
 	f, err := strconv.ParseFloat(v, 64)
 	if err != nil {
 		return nil, errPHPSerialize
