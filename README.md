@@ -18,7 +18,9 @@ same key.
 - Constant-time MAC verification (CBC) / AEAD tag verification (GCM).
 - Tampered, wrong-key and malformed payloads are **always rejected** with typed errors.
 - Zero dependencies (standard library only).
-- Verified **both directions** against the real Laravel encrypter in CI (Laravel 11/12/13).
+- Payload validation mirrors `Illuminate\Encryption\Encrypter`, including PHP's lenient
+  `base64_decode` and `empty()` quirks.
+- Verified **both directions** against the real Laravel encrypter in CI (Laravel 10/11/12/13).
 
 ## Install
 
@@ -131,14 +133,22 @@ The key is the raw key bytes — a Laravel `APP_KEY` `base64:XXXX` decodes to 32
 go test ./...                       # unit + Laravel-generated vectors + round-trip + tamper
 make race                           # with the race detector
 make fuzz                           # fuzz the decoder
-make interop                        # both directions vs the REAL Laravel encrypter (needs PHP)
+make interop                        # all of the below vs the REAL Laravel encrypter (needs PHP)
 ```
 
-CI runs the unit tests on a Go/OS matrix and, using the real `illuminate/encryption`,
-proves **both directions**:
+`fixtures/vectors.json` holds payloads produced by the real `illuminate/encryption`: all four
+ciphers, strings (unicode, binary, block-aligned, long) and serialized values (floats, nested
+arrays, mixed keys, objects).
 
-- **Laravel → Go**: `scripts/generate_vectors.php` (real `Encrypter`) → `TestDecryptLaravelVectors`.
-- **Go → Laravel**: `go run ./cmd/genvectors` → `scripts/verify_go_vectors.php` (real `Encrypter`).
+CI runs, for Laravel 10, 11, 12 and 13 with the real `illuminate/encryption`:
+
+- **Laravel → Go**: `scripts/generate_vectors.php` → `TestDecryptLaravelVectors` and the
+  serialized-value tests.
+- **Go → Laravel**: `go run ./cmd/genvectors` → `scripts/verify_go_vectors.php`.
+- **Malformed input**: `go run ./cmd/mutations` emits valid and mutated payloads (edited
+  fields, odd JSON types, broken base64) with Go's verdict on each;
+  `scripts/verify_mutations.php` asks Laravel about the same payloads. Both must accept and
+  reject exactly the same ones and return the same plaintext.
 
 ## License
 

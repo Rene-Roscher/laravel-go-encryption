@@ -6,7 +6,20 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+- Payload validation now mirrors Laravel's `Encrypter` exactly: PHP's lenient `base64_decode`
+  for the payload, `value` and `tag`, strict decoding for `iv`, `mac` required to be a string,
+  a tag on a CBC payload rejected, `"0"` treated as no tag, JSON with invalid UTF-8 or
+  non-string fields rejected, and field names matched case-sensitively.
+- The PHP unserializer rejects float spellings PHP does not accept (`inf`, `nan`, hex floats).
+
 ### Added
+- Test coverage across all four ciphers: payload layout, tamper and tag rules, malformed
+  payloads, key forms and sizes, serialized values from real Laravel, concurrency, and
+  arbitrary-input robustness.
+- `cmd/mutations` and `scripts/verify_mutations.php`: Go and Laravel must judge thousands of
+  mutated payloads identically.
+- Interop in CI for Laravel 10 and for all four ciphers in both directions.
 - Initial release: `Encrypter` with `EncryptString` / `DecryptString`, wire-compatible with
   Laravel's `Illuminate\Encryption\Encrypter` (AES-256-CBC and AES-256-GCM), Laravel 10–13.
 - `Encrypt` / `Decrypt` (the PHP-`serialize` path) with a built-in PHP serializer for nil,
