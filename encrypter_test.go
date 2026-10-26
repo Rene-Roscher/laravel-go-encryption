@@ -14,14 +14,20 @@ var base64Std = base64.StdEncoding
 // generated with, in Laravel's APP_KEY "base64:" form.
 const testKey = "base64:KysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKys="
 
+type vector struct {
+	Name          string `json:"name"`
+	Cipher        string `json:"cipher"`
+	PlaintextB64  string `json:"plaintext_b64"`
+	SerializedB64 string `json:"serialized_b64"`
+	Payload       string `json:"payload"`
+}
+
 type vectorFile struct {
-	KeyB64  string `json:"key_b64"`
-	Vectors []struct {
-		Name      string `json:"name"`
-		Cipher    string `json:"cipher"`
-		Plaintext string `json:"plaintext"`
-		Payload   string `json:"payload"`
-	} `json:"vectors"`
+	Laravel    string   `json:"laravel"`
+	KeyB64     string   `json:"key_b64"`
+	Vectors    []vector `json:"vectors"`
+	Serialized []vector `json:"serialized"`
+	Objects    []vector `json:"objects"`
 }
 
 func loadVectors(t *testing.T) vectorFile {
@@ -34,30 +40,43 @@ func loadVectors(t *testing.T) vectorFile {
 	if err := json.Unmarshal(data, &vf); err != nil {
 		t.Fatalf("parse fixtures/vectors.json: %v", err)
 	}
-	if vf.KeyB64 == "" || len(vf.Vectors) == 0 {
-		t.Fatal("fixtures/vectors.json is empty")
+	if vf.KeyB64 == "" || len(vf.Vectors) == 0 || len(vf.Serialized) == 0 || len(vf.Objects) == 0 {
+		t.Fatal("fixtures/vectors.json is incomplete")
 	}
 	return vf
 }
 
+// fixtureEncrypter returns an Encrypter for the fixture key, truncated to the cipher's key
+// size (aes-128-* uses the first 16 bytes), like scripts/generate_vectors.php does.
+func fixtureEncrypter(t *testing.T, vf vectorFile, cipherName string) *Encrypter {
+	t.Helper()
+	key := mustB64Decode(t, vf.KeyB64)
+	size := 32
+	if strings.Contains(cipherName, "128") {
+		size = 16
+	}
+	enc, err := New("base64:"+b64Encode(key[:size]), cipherName)
+	if err != nil {
+		t.Fatalf("New(%s): %v", cipherName, err)
+	}
+	return enc
+}
+
 // TestDecryptLaravelVectors decrypts real payloads produced by the actual Laravel
 // Encrypter (fixtures/vectors.json, regenerated in CI by scripts/generate_vectors.php) and
-// asserts each matches the source plaintext — byte-level Laravel→Go interop for both
-// AES-256-CBC and AES-256-GCM, across unicode/empty/JSON/multiline/long inputs.
+// asserts each matches the source plaintext — byte-level Laravel→Go interop for all four
+// ciphers, across unicode/empty/JSON/multiline/binary/block-aligned/long inputs.
 func TestDecryptLaravelVectors(t *testing.T) {
 	vf := loadVectors(t)
 	for _, v := range vf.Vectors {
 		t.Run(v.Name, func(t *testing.T) {
-			enc, err := New("base64:"+vf.KeyB64, v.Cipher)
-			if err != nil {
-				t.Fatalf("New: %v", err)
-			}
+			enc := fixtureEncrypter(t, vf, v.Cipher)
 			got, err := enc.DecryptString(v.Payload)
 			if err != nil {
 				t.Fatalf("DecryptString: %v", err)
 			}
-			if got != v.Plaintext {
-				t.Errorf("decrypt mismatch\n got=%q\nwant=%q", got, v.Plaintext)
+			if want := string(mustB64Decode(t, v.PlaintextB64)); got != want {
+				t.Errorf("decrypt mismatch\n got=%q\nwant=%q", got, want)
 			}
 		})
 	}
@@ -71,11 +90,8 @@ func TestRoundTrip(t *testing.T) {
 		strings.Repeat("line of text 0123456789\n", 500),
 		string([]byte{0x00, 0x01, 0x02, 0xff, 0xfe, 0x7f, 0x80}),
 	}
-	for _, ciph := range []string{"aes-256-cbc", "aes-256-gcm"} {
-		enc, err := New(testKey, ciph)
-		if err != nil {
-			t.Fatalf("New(%s): %v", ciph, err)
-		}
+	for _, ciph := range allCiphers {
+		enc := newEnc(t, ciph)
 		for i, pt := range cases {
 			payload, err := enc.EncryptString(pt)
 			if err != nil {
@@ -102,11 +118,13 @@ func TestTamperRejected(t *testing.T) {
 		cipher  string
 		targets []string
 	}{
+		{"aes-128-cbc", []string{"iv", "value", "mac"}},
 		{"aes-256-cbc", []string{"iv", "value", "mac"}},
+		{"aes-128-gcm", []string{"iv", "value", "tag"}},
 		{"aes-256-gcm", []string{"iv", "value", "tag"}},
 	}
 	for _, c := range cases {
-		enc, _ := New(testKey, c.cipher)
+		enc := newEnc(t, c.cipher)
 		payload, _ := enc.EncryptString("a secret payload")
 
 		var m map[string]string

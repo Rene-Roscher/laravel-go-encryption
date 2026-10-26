@@ -2,54 +2,68 @@
 
 declare(strict_types=1);
 
-// Reads {key, vectors:[{kind,cipher,plaintext,payload}]} JSON on STDIN (produced by
-// `go run ./cmd/genvectors`), decrypts each with the REAL Laravel Encrypter, and asserts
-// equality. Exits non-zero on any mismatch — proving the Go -> Laravel direction for both
-// the string path (decryptString) and the serialized path (decrypt).
+// Reads the JSON produced by `go run ./cmd/genvectors` on STDIN, decrypts each payload with
+// the REAL Laravel Encrypter and asserts equality. Exits non-zero on any mismatch, proving
+// the Go -> Laravel direction for the string path (decryptString) and the serialized path
+// (decrypt), for every supported cipher.
 
 require __DIR__.'/../vendor/autoload.php';
 
 use Illuminate\Encryption\Encrypter;
 
-$input = stream_get_contents(STDIN);
-$data = json_decode($input, true);
+$data = json_decode(stream_get_contents(STDIN), true);
 
-if (! is_array($data) || ! isset($data['key'], $data['vectors'])) {
+if (! is_array($data) || ! isset($data['key_b64'], $data['vectors'])) {
     fwrite(STDERR, "Invalid input JSON\n");
     exit(2);
 }
 
-$key = $data['key'];
-$rawKey = str_starts_with($key, 'base64:') ? base64_decode(substr($key, 7)) : $key;
+$rawKey = base64_decode($data['key_b64']);
+$cases = require __DIR__.'/cases.php';
 
-// Must match the structure encoded by cmd/genvectors.
-$expectedTyped = ['user' => 'alice', 'id' => 7, 'active' => true, 'score' => 2.5, 'tags' => ['x', 'y'], 'meta' => null];
+// Go maps have no order, so compare with array keys sorted. serialize() still compares
+// types, -0.0 and NAN exactly.
+function normalize(mixed $value): string
+{
+    $sort = function (mixed $v) use (&$sort) {
+        if (is_array($v)) {
+            ksort($v);
+            return array_map($sort, $v);
+        }
+        return $v;
+    };
+
+    return serialize($sort($value));
+}
 
 $failures = 0;
 foreach ($data['vectors'] as $v) {
-    $enc = new Encrypter($rawKey, $v['cipher']);
+    $size = str_contains($v['cipher'], '128') ? 16 : 32;
+    $enc = new Encrypter(substr($rawKey, 0, $size), $v['cipher']);
+
     try {
-        if (($v['kind'] ?? 'string') === 'serialized') {
-            $got = $enc->decrypt($v['payload']);
-            $ok = ($got == $expectedTyped); // loose: array key order is irrelevant
+        if ($v['kind'] === 'serialized') {
+            $got = normalize($enc->decrypt($v['payload']));
+            $want = normalize($cases[$v['case']]);
         } else {
             $got = $enc->decryptString($v['payload']);
-            $ok = ($got === $v['plaintext']);
+            $want = base64_decode($v['plaintext_b64']);
         }
+        $ok = $got === $want;
     } catch (\Throwable $e) {
         $ok = false;
         $got = 'EXCEPTION: '.$e->getMessage();
     }
-    if ($ok) {
-        fwrite(STDERR, "OK   [{$v['cipher']}/{$v['kind']}]\n");
-    } else {
+
+    if (! $ok) {
         $failures++;
-        fwrite(STDERR, "FAIL [{$v['cipher']}/{$v['kind']}] got=".var_export($got, true)."\n");
+        fwrite(STDERR, "FAIL [{$v['name']}] got=".var_export($got, true)."\n");
     }
 }
 
+$total = count($data['vectors']);
 if ($failures > 0) {
-    fwrite(STDERR, "{$failures} Go->Laravel vector(s) failed\n");
+    fwrite(STDERR, "{$failures}/{$total} Go->Laravel vector(s) failed\n");
     exit(1);
 }
-fwrite(STDERR, "All Go->Laravel vectors decrypted correctly\n");
+fwrite(STDERR, "All {$total} Go->Laravel vectors decrypted correctly\n");
