@@ -92,7 +92,9 @@ unserialize-gadget chains. Numbers decoded from JSON in Go are `float64`; pass e
 | `object`        | `map[string]any` (`"__class__"`; decode-only, never instantiated) |
 
 `Decrypt` returns exactly one of the Go types above — assert with the comma-ok form. The
-decoder **never panics** on any input (verified by `FuzzDecryptString`); unsupported
+decoder **never panics** on any input (verified by `FuzzDecryptString` and `FuzzPHPUnmarshal`), rejects
+trailing data (PHP warns about it and Laravel turns the warning into an exception) and nesting deeper
+than 128 levels; unsupported
 `Encrypt` inputs (channels, funcs, structs, …) return a typed error rather than panicking.
 Note that PHP `int` ↔ Go `int64` and PHP `float` ↔ `float64`; numbers decoded from JSON in Go
 are `float64`, so pass explicit `int`/`int64` when you need a PHP integer.
