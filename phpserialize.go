@@ -20,12 +20,18 @@ import (
 // chains. Integer-keyed arrays decode to []any when the keys are exactly 0..n-1, otherwise
 // to a map[string]any with stringified keys (matching how PHP blurs lists and maps).
 //
+// Decoding rejects trailing data (PHP warns about it, which Laravel turns into an exception)
+// and nesting deeper than 128 levels.
+//
 // Note: numbers decoded from JSON in Go are float64; pass explicit int/int64 if you need
 // PHP integers. Floats are round-tripped by value (Go's shortest representation), which PHP
 // parses back to the identical double — they are not guaranteed byte-identical to PHP's own
 // serializer output, but that never affects correctness (the IV is random anyway).
 
 var errPHPSerialize = errors.New("laravelcrypt: invalid PHP serialization")
+
+// maxPHPDepth is the deepest array/object nesting the decoder accepts.
+const maxPHPDepth = 128
 
 // phpMarshal serializes v into PHP's serialize() format.
 func phpMarshal(v any) (string, error) {
@@ -158,9 +164,13 @@ func phpEncodeMap(b *strings.Builder, m map[string]any) error {
 // phpUnmarshal parses a PHP serialize() string into Go values.
 func phpUnmarshal(s string) (any, error) {
 	d := &phpDecoder{s: s}
-	v, err := d.value()
+	v, err := d.value(0)
 	if err != nil {
 		return nil, err
+	}
+	// PHP warns about extra data, which Laravel's error handler turns into an exception.
+	if d.i != len(d.s) {
+		return nil, errPHPSerialize
 	}
 	return v, nil
 }
@@ -170,8 +180,8 @@ type phpDecoder struct {
 	i int
 }
 
-func (d *phpDecoder) value() (any, error) {
-	if d.i >= len(d.s) {
+func (d *phpDecoder) value(depth int) (any, error) {
+	if depth > maxPHPDepth || d.i >= len(d.s) {
 		return nil, errPHPSerialize
 	}
 	switch d.s[d.i] {
@@ -186,9 +196,9 @@ func (d *phpDecoder) value() (any, error) {
 	case 's':
 		return d.str()
 	case 'a':
-		return d.array()
+		return d.array(depth)
 	case 'O':
-		return d.object()
+		return d.object(depth)
 	default:
 		return nil, errPHPSerialize
 	}
@@ -301,7 +311,7 @@ func (d *phpDecoder) str() (string, error) {
 	return out, nil
 }
 
-func (d *phpDecoder) array() (any, error) {
+func (d *phpDecoder) array(depth int) (any, error) {
 	if err := d.lit("a:"); err != nil {
 		return nil, err
 	}
@@ -309,14 +319,14 @@ func (d *phpDecoder) array() (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	keys, vals, err := d.pairs(count)
+	keys, vals, err := d.pairs(count, depth)
 	if err != nil {
 		return nil, err
 	}
 	return assemble(keys, vals), nil
 }
 
-func (d *phpDecoder) object() (any, error) {
+func (d *phpDecoder) object(depth int) (any, error) {
 	if err := d.lit("O:"); err != nil {
 		return nil, err
 	}
@@ -343,7 +353,7 @@ func (d *phpDecoder) object() (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	keys, vals, err := d.pairs(count)
+	keys, vals, err := d.pairs(count, depth)
 	if err != nil {
 		return nil, err
 	}
@@ -371,26 +381,37 @@ func (d *phpDecoder) count() (int, error) {
 	return n, nil
 }
 
-func (d *phpDecoder) pairs(count int) (keys, vals []any, err error) {
-	keys = make([]any, count)
-	vals = make([]any, count)
+func (d *phpDecoder) pairs(count, depth int) (keys, vals []any, err error) {
+	// Every pair takes at least 4 bytes ("i:0;N;"), so a hostile count cannot make us reserve
+	// more than the input could hold.
+	capacity := min(count, (len(d.s)-d.i)/4)
+	keys = make([]any, 0, capacity)
+	vals = make([]any, 0, capacity)
 	for i := 0; i < count; i++ {
-		k, kerr := d.value()
+		k, kerr := d.key()
 		if kerr != nil {
 			return nil, nil, kerr
 		}
-		v, verr := d.value()
+		v, verr := d.value(depth + 1)
 		if verr != nil {
 			return nil, nil, verr
 		}
-		keys[i] = k
-		vals[i] = v
+		keys = append(keys, k)
+		vals = append(vals, v)
 	}
 	if d.i >= len(d.s) || d.s[d.i] != '}' {
 		return nil, nil, errPHPSerialize
 	}
 	d.i++
 	return keys, vals, nil
+}
+
+// key parses an array key, which PHP restricts to integers and strings.
+func (d *phpDecoder) key() (any, error) {
+	if d.i >= len(d.s) || (d.s[d.i] != 'i' && d.s[d.i] != 's') {
+		return nil, errPHPSerialize
+	}
+	return d.value(0)
 }
 
 // assemble returns a []any when keys are exactly 0..n-1 (a PHP list), else a string-keyed map.
