@@ -22,6 +22,8 @@ All notable changes to this project are documented here. The format is based on
   the unserializer panic or reserve huge amounts of memory.
 
 ### Added
+- `AppearsEncrypted`, like Laravel's `Encrypter::appearsEncrypted`, compared with Laravel on the
+  mutated payloads.
 - `WithPreviousKeys` option (previous keys, as in Laravel 11+), `EncryptCookie` / `DecryptCookie`
   for Laravel's `EncryptCookies` middleware, and `PHPSerialize` / `PHPUnserialize` for the
   serialized attributes of encrypted sessions.

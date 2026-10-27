@@ -727,3 +727,30 @@ func TestLaravelObjectsDecodeWithoutInstantiation(t *testing.T) {
 		}
 	}
 }
+
+func TestAppearsEncryptedInspectsThePayloadShape(t *testing.T) {
+	for _, c := range allCiphers {
+		if !AppearsEncrypted(mustEncrypt(t, newEnc(t, c), "x")) {
+			t.Errorf("%s: a real payload does not appear encrypted", c)
+		}
+	}
+	valid := mustEncrypt(t, newEnc(t, "aes-256-cbc"), "x")
+	wrap := func(s string) string { return b64Encode([]byte(s)) }
+	for name, v := range map[string]string{
+		"empty": "", "plain text": "plain text", "empty object": "e30=", "json null": "bnVsbA==",
+		"list":          wrap("[]"),
+		"missing mac":   editPayload(t, valid, func(m map[string]any) { delete(m, "mac") }),
+		"null iv":       editPayload(t, valid, func(m map[string]any) { m["iv"] = nil }),
+		"invalid utf-8": wrap("{\"iv\":\"\xff\",\"value\":\"x\",\"mac\":\"x\"}"),
+		// base64_decode($value, true) is strict: other characters are rejected
+		"not strict base64": valid + "!",
+	} {
+		if AppearsEncrypted(v) {
+			t.Errorf("%s appears encrypted", name)
+		}
+	}
+	// Only the presence of the three fields counts, as in Laravel.
+	if !AppearsEncrypted(wrap(`{"iv":1,"value":[],"mac":false}`)) {
+		t.Error("a payload with the three fields of any type appears encrypted")
+	}
+}

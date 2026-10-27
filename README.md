@@ -149,6 +149,9 @@ inner, err := laravelcrypt.PHPSerialize(attrs)
 payload, err := enc.Encrypt(inner)
 ```
 
+`AppearsEncrypted(value)` checks whether a string has the shape of a payload without decrypting it,
+like `Encrypter::appearsEncrypted` in Laravel 12+.
+
 **Eloquent casts.** `encrypted` is `Crypt::encryptString()` of the value; `encrypted:array`,
 `:object` and `:collection` encrypt its JSON. Use `DecryptString` / `EncryptString` and
 `encoding/json`.

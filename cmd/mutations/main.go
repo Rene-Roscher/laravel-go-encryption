@@ -1,7 +1,8 @@
 // Command mutations emits valid and mutated payloads together with this package's verdict on
 // each, as JSON on stdout. CI pipes this into scripts/verify_mutations.php, which asks the
 // real Laravel encrypter about the same payloads: both must accept and reject exactly the
-// same ones, and return the same plaintext for the accepted ones.
+// same ones, and return the same plaintext for the accepted ones. Laravel versions that have
+// Encrypter::appearsEncrypted() are also asked whether each payload looks encrypted.
 package main
 
 import (
@@ -19,6 +20,7 @@ type verdict struct {
 	Cipher  string  `json:"cipher"`
 	Payload string  `json:"payload"`
 	Plain   *string `json:"plain"`
+	Appears bool    `json:"appears"`
 }
 
 func main() {
@@ -110,7 +112,7 @@ func main() {
 			}
 
 			for _, p := range payloads {
-				v := verdict{Cipher: c.name, Payload: p}
+				v := verdict{Cipher: c.name, Payload: p, Appears: laravelcrypt.AppearsEncrypted(p)}
 				if plain, err := enc.DecryptString(p); err == nil {
 					v.Plain = &plain
 				}

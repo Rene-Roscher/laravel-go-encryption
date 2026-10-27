@@ -229,6 +229,20 @@ func PHPSerialize(v any) (string, error) { return phpMarshal(v) }
 // data and nesting deeper than 128 levels, and never instantiates PHP objects.
 func PHPUnserialize(s string) (any, error) { return phpUnmarshal(s) }
 
+// AppearsEncrypted reports whether value has the shape of a payload produced by an encrypter,
+// without decrypting it (Laravel's Encrypter::appearsEncrypted, Laravel 12+).
+func AppearsEncrypted(value string) bool {
+	raw, ok := phpBase64DecodeStrict(value)
+	if !ok || !utf8.Valid(raw) {
+		return false
+	}
+	var fields map[string]any
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return false
+	}
+	return fields["iv"] != nil && fields["value"] != nil && fields["mac"] != nil
+}
+
 func (e *Encrypter) encrypt(plain []byte) (string, error) {
 	iv := make([]byte, e.ivLen())
 	if _, err := rand.Read(iv); err != nil {
