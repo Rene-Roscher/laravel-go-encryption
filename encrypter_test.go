@@ -28,6 +28,9 @@ type vectorFile struct {
 	Vectors    []vector `json:"vectors"`
 	Serialized []vector `json:"serialized"`
 	Objects    []vector `json:"objects"`
+	Rotated    []vector `json:"rotated"`
+
+	PreviousKeyB64 string `json:"previous_key_b64"`
 }
 
 func loadVectors(t *testing.T) vectorFile {

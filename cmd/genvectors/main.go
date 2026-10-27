@@ -4,11 +4,13 @@
 // Laravel -> Go).
 //
 // "string" vectors use EncryptString/decryptString; "serialized" vectors use Encrypt/decrypt
-// (the PHP-serialize path) and build the values named in scripts/cases.php.
+// (the PHP-serialize path) and build the values named in scripts/cases.php. The app-layer
+// vectors cover random keys, cookies, Eloquent encrypted casts and encrypted sessions.
 package main
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -18,6 +20,20 @@ import (
 
 	laravelcrypt "github.com/Rene-Roscher/laravel-go-encryption"
 )
+
+type vector struct {
+	Kind          string `json:"kind"`
+	Name          string `json:"name"`
+	Case          string `json:"case,omitempty"`
+	Cipher        string `json:"cipher"`
+	KeyB64        string `json:"key_b64,omitempty"`
+	PlaintextB64  string `json:"plaintext_b64"`
+	CookieName    string `json:"cookie_name,omitempty"`
+	ValueB64      string `json:"value_b64"`
+	Attribute     string `json:"attribute,omitempty"`
+	Serialization string `json:"serialization,omitempty"`
+	Payload       string `json:"payload"`
+}
 
 func main() {
 	b64 := base64.StdEncoding
@@ -32,15 +48,6 @@ func main() {
 		{"binary", "\x00\x01\xff\xfe\x80\x7f"},
 		{"block_aligned", strings.Repeat("a", 32)},
 		{"long", strings.Repeat("The quick brown fox 0123456789 ", 50)},
-	}
-
-	type vector struct {
-		Kind         string `json:"kind"`
-		Name         string `json:"name"`
-		Case         string `json:"case,omitempty"`
-		Cipher       string `json:"cipher"`
-		PlaintextB64 string `json:"plaintext_b64"`
-		Payload      string `json:"payload"`
 	}
 
 	var vectors []vector
@@ -67,6 +74,8 @@ func main() {
 			})
 		}
 	}
+
+	vectors = append(vectors, appLayerVectors()...)
 
 	check(json.NewEncoder(os.Stdout).Encode(map[string]any{
 		"key_b64": b64.EncodeToString(key),
@@ -127,4 +136,86 @@ func check(err error) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+var allCiphers = []struct {
+	name string
+	size int
+}{{"aes-128-cbc", 16}, {"aes-256-cbc", 32}, {"aes-128-gcm", 16}, {"aes-256-gcm", 32}}
+
+// appLayerVectors covers random keys, cookies, Eloquent encrypted casts and encrypted sessions.
+func appLayerVectors() []vector {
+	b64 := base64.StdEncoding
+	fixed := bytes.Repeat([]byte{0x2b}, 32)
+	var out []vector
+
+	for _, c := range allCiphers {
+		// Random keys: every byte value can appear in a key.
+		for i := 0; i < 6; i++ {
+			key := make([]byte, c.size)
+			_, err := rand.Read(key)
+			check(err)
+			enc, err := laravelcrypt.New("base64:"+b64.EncodeToString(key), c.name)
+			check(err)
+			for n, text := range []string{"Hello, World!", "", "Grüße 世界 🚀 café"} {
+				payload, err := enc.EncryptString(text)
+				check(err)
+				out = append(out, vector{
+					Kind: "random_key", Name: fmt.Sprintf("%s/key%d/%d", c.name, i, n), Cipher: c.name,
+					KeyB64: b64.EncodeToString(key), PlaintextB64: b64.EncodeToString([]byte(text)), Payload: payload,
+				})
+			}
+		}
+
+		enc, err := laravelcrypt.New("base64:"+b64.EncodeToString(fixed[:c.size]), c.name)
+		check(err)
+
+		// Cookies, as EncryptCookies expects them.
+		for _, ck := range [][2]string{
+			{"laravel_session", "0123456789abcdef0123456789abcdef01234567"},
+			{"XSRF-TOKEN", ""},
+			{"a b", "with|pipe|chars"},
+			{"küche", "Grüße 世界"},
+		} {
+			payload, err := enc.EncryptCookie(ck[0], ck[1])
+			check(err)
+			out = append(out, vector{
+				Kind: "cookie", Name: c.name + "/cookie/" + ck[0], Cipher: c.name,
+				CookieName: ck[0], ValueB64: b64.EncodeToString([]byte(ck[1])), Payload: payload,
+			})
+		}
+
+		// Eloquent casts: encrypted values are Crypt::encryptString() of the value or its JSON.
+		for _, cast := range [][2]string{
+			{"plain", "hello wörld"},
+			{"list", `{"x":1,"y":[1,2],"z":"ü"}`},
+			{"object", `{"k":"v","n":3}`},
+			{"collection", `[1,"two",3.5]`},
+		} {
+			payload, err := enc.EncryptString(cast[1])
+			check(err)
+			out = append(out, vector{
+				Kind: "cast", Name: c.name + "/cast/" + cast[0], Cipher: c.name,
+				Attribute: cast[0], PlaintextB64: b64.EncodeToString([]byte(cast[1])), Payload: payload,
+			})
+		}
+
+		// Encrypted sessions: Crypt::encrypt() of the serialized attributes.
+		php, err := laravelcrypt.PHPSerialize(map[string]any{
+			"user_id": int64(7), "cart": map[string]any{"apple": int64(2), "pear": int64(1)}, "name": "Grüße",
+		})
+		check(err)
+		for _, s := range []struct{ serialization, inner string }{
+			{"php", php},
+			{"json", `{"user_id":7,"cart":{"apple":2,"pear":1},"name":"Grüße"}`},
+		} {
+			payload, err := enc.Encrypt(s.inner)
+			check(err)
+			out = append(out, vector{
+				Kind: "session", Name: c.name + "/session/" + s.serialization, Cipher: c.name,
+				Serialization: s.serialization, Payload: payload,
+			})
+		}
+	}
+	return out
 }
