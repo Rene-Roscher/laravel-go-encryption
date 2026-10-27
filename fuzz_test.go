@@ -29,3 +29,21 @@ func FuzzDecryptString(f *testing.F) {
 		_, _ = gcm.DecryptString(payload)
 	})
 }
+
+// FuzzPHPUnmarshal asserts the PHP unserializer never panics, whatever the input.
+func FuzzPHPUnmarshal(f *testing.F) {
+	for _, s := range []string{
+		"", "N;", "b:1;", "i:7;", "d:2.5;", `s:3:"abc";`,
+		`a:2:{i:0;s:1:"x";i:1;a:0:{}}`, `O:8:"stdClass":1:{s:1:"a";i:1;}`,
+		"a:9223372036854775807:{}", "a:1:{b:1;b:1;}", "d:inf;",
+	} {
+		f.Add(s)
+	}
+	f.Fuzz(func(_ *testing.T, s string) {
+		v, err := phpUnmarshal(s)
+		if err == nil {
+			// Whatever decoded must serialize again without panicking.
+			_, _ = phpMarshal(v)
+		}
+	})
+}

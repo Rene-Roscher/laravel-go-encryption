@@ -8,6 +8,7 @@ race:
 
 fuzz:
 	go test -run '^$$' -fuzz FuzzDecryptString -fuzztime 30s .
+	go test -run '^$$' -fuzz FuzzPHPUnmarshal -fuzztime 30s .
 
 lint:
 	golangci-lint run

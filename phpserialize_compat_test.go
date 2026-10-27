@@ -162,3 +162,50 @@ func TestErrorsAreDistinguishable(t *testing.T) {
 		}
 	}
 }
+
+func TestPHPUnmarshalRejectsTrailingData(t *testing.T) {
+	// PHP warns about extra data, and Laravel's error handler turns that into an exception.
+	for _, bad := range []string{"N;N;", "i:1;x", `a:0:{}a:0:{}`, `s:1:"a";;`} {
+		if _, err := phpUnmarshal(bad); err == nil {
+			t.Errorf("phpUnmarshal(%q) must fail", bad)
+		}
+	}
+}
+
+func TestPHPUnmarshalRejectsKeysThatAreNotIntOrString(t *testing.T) {
+	for _, bad := range []string{
+		"a:1:{b:1;b:1;}", "a:1:{d:1.5;b:1;}", "a:1:{N;b:1;}", "a:1:{a:0:{}b:1;}",
+		`O:8:"stdClass":1:{b:1;b:1;}`,
+	} {
+		if _, err := phpUnmarshal(bad); err == nil {
+			t.Errorf("phpUnmarshal(%q) must fail", bad)
+		}
+	}
+}
+
+func TestPHPUnmarshalLimitsNesting(t *testing.T) {
+	nested := func(depth int) string {
+		return strings.Repeat("a:1:{i:0;", depth) + "N;" + strings.Repeat("}", depth)
+	}
+	if _, err := phpUnmarshal(nested(maxPHPDepth)); err != nil {
+		t.Errorf("nesting of %d must be accepted: %v", maxPHPDepth, err)
+	}
+	for _, depth := range []int{maxPHPDepth + 1, 100_000} {
+		if _, err := phpUnmarshal(nested(depth)); err == nil {
+			t.Errorf("nesting of %d must be rejected", depth)
+		}
+	}
+}
+
+// A hostile element count must neither allocate for it nor panic.
+func TestPHPUnmarshalSurvivesHostileCounts(t *testing.T) {
+	for _, bad := range []string{
+		"a:9223372036854775807:{}",
+		"a:4000000000:{i:0;N;}",
+		`O:8:"stdClass":9223372036854775807:{}`,
+	} {
+		if _, err := phpUnmarshal(bad); err == nil {
+			t.Errorf("phpUnmarshal(%q) must fail", bad)
+		}
+	}
+}

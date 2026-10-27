@@ -11,7 +11,12 @@ All notable changes to this project are documented here. The format is based on
   for the payload, `value` and `tag`, strict decoding for `iv`, `mac` required to be a string,
   a tag on a CBC payload rejected, `"0"` treated as no tag, JSON with invalid UTF-8 or
   non-string fields rejected, and field names matched case-sensitively.
-- The PHP unserializer rejects float spellings PHP does not accept (`inf`, `nan`, hex floats).
+- The PHP unserializer rejects float spellings PHP does not accept (`inf`, `nan`, hex floats),
+  array keys that are not integers or strings, trailing data, and nesting deeper than 128 levels.
+
+### Fixed
+- A hostile element count in a serialized array (for example `a:9223372036854775807:{}`) made
+  the unserializer panic or reserve huge amounts of memory.
 
 ### Added
 - Test coverage across all four ciphers: payload layout, tamper and tag rules, malformed
