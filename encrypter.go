@@ -20,6 +20,7 @@ import (
 	"crypto/cipher"
 	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha1" //nolint:gosec // Laravel derives its cookie prefix with HMAC-SHA1
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
@@ -50,13 +51,40 @@ var (
 	ErrInvalidMAC        = errors.New("laravelcrypt: the MAC is invalid")
 	ErrDecrypt           = errors.New("laravelcrypt: could not decrypt the data")
 	ErrEmptyKey          = errors.New("laravelcrypt: empty key")
+	ErrInvalidCookie     = errors.New("laravelcrypt: the cookie value prefix is invalid")
 )
 
-// Encrypter is a single-key, single-cipher Laravel-compatible encrypter.
+// Encrypter is a single-cipher Laravel-compatible encrypter with one current key and,
+// optionally, previous keys that are tried when decrypting.
 type Encrypter struct {
-	key    []byte
-	cipher string
-	info   cipherInfo
+	key      []byte
+	previous [][]byte
+	cipher   string
+	info     cipherInfo
+}
+
+// Option configures an Encrypter.
+type Option func(*Encrypter) error
+
+// WithPreviousKeys sets the keys that are tried when decrypting with the current key fails, like
+// Laravel's previousKeys() and APP_PREVIOUS_KEYS (Laravel 11+). New payloads are always encrypted
+// with the current key. Each key takes the same forms as New's key and must fit the cipher.
+func WithPreviousKeys(keys ...string) Option {
+	return func(e *Encrypter) error {
+		previous := make([][]byte, 0, len(keys))
+		for _, k := range keys {
+			raw, err := ParseKey(k)
+			if err != nil {
+				return err
+			}
+			if len(raw) != e.info.size {
+				return ErrUnsupportedCipher
+			}
+			previous = append(previous, raw)
+		}
+		e.previous = previous
+		return nil
+	}
 }
 
 type wirePayload struct {
@@ -68,7 +96,7 @@ type wirePayload struct {
 
 // New builds an Encrypter. key accepts the Laravel "base64:..." form, a bare base64
 // string, or raw key bytes. cipher is e.g. "aes-256-cbc" (Laravel default) or "aes-256-gcm".
-func New(key, cipher string) (*Encrypter, error) {
+func New(key, cipher string, opts ...Option) (*Encrypter, error) {
 	raw, err := ParseKey(key)
 	if err != nil {
 		return nil, err
@@ -80,22 +108,31 @@ func New(key, cipher string) (*Encrypter, error) {
 		return nil, ErrUnsupportedCipher
 	}
 
-	return &Encrypter{key: raw, cipher: c, info: info}, nil
+	e := &Encrypter{key: raw, cipher: c, info: info}
+	for _, opt := range opts {
+		if err := opt(e); err != nil {
+			return nil, err
+		}
+	}
+	return e, nil
+}
+
+// allKeys returns the current key followed by the previous keys, like getAllKeys().
+func (e *Encrypter) allKeys() [][]byte {
+	return append([][]byte{e.key}, e.previous...)
 }
 
 // ParseKey resolves a key string to raw bytes. "base64:XXXX" (Laravel APP_KEY form) is
-// base64-decoded; a bare base64 string that decodes to 16/32 bytes is used as-is;
-// otherwise the string's raw bytes are used.
+// base64-decoded the way Laravel does, with PHP's lenient base64_decode (padding is optional and
+// stray characters are skipped; a malformed value decodes to the wrong length, which New
+// rejects); a bare base64 string that decodes to 16/32 bytes is used as-is; otherwise the
+// string's raw bytes are used.
 func ParseKey(key string) ([]byte, error) {
 	if key == "" {
 		return nil, ErrEmptyKey
 	}
 	if strings.HasPrefix(key, "base64:") {
-		dec, err := base64.StdEncoding.DecodeString(key[len("base64:"):])
-		if err != nil {
-			return nil, ErrUnsupportedCipher
-		}
-		return dec, nil
+		return phpBase64Decode(key[len("base64:"):]), nil
 	}
 	if dec, err := base64.StdEncoding.DecodeString(key); err == nil && (len(dec) == 16 || len(dec) == 32) {
 		return dec, nil
@@ -149,6 +186,49 @@ func (e *Encrypter) Decrypt(payload string) (any, error) {
 	return phpUnmarshal(string(b))
 }
 
+// EncryptCookie encrypts a cookie value the way Laravel's EncryptCookies middleware does: the
+// value is prefixed with an HMAC of the cookie name and the key, and encrypted without
+// serialization. Laravel decrypts it back to value for the cookie name.
+func (e *Encrypter) EncryptCookie(name, value string) (string, error) {
+	return e.encrypt([]byte(cookiePrefix(name, e.key) + value))
+}
+
+// DecryptCookie decrypts a cookie that Laravel's EncryptCookies middleware encrypted, and checks
+// that it was issued for the cookie name by this application: the prefix must match the current
+// key or one of the previous keys, otherwise the result is ErrInvalidCookie (Laravel treats such
+// a cookie as absent).
+//
+// payload is the raw cookie value; URL-decode it first if it comes from a Cookie header. Cookies
+// that an application serializes on purpose (EncryptCookies::serialized()) are not supported.
+func (e *Encrypter) DecryptCookie(name, payload string) (string, error) {
+	plain, err := e.decrypt(payload)
+	if err != nil {
+		return "", err
+	}
+	for _, key := range e.allKeys() {
+		prefix := cookiePrefix(name, key)
+		if len(plain) >= len(prefix) && subtle.ConstantTimeCompare(plain[:len(prefix)], []byte(prefix)) == 1 {
+			return string(plain[len(prefix):]), nil
+		}
+	}
+	return "", ErrInvalidCookie
+}
+
+// cookiePrefix is Laravel's CookieValuePrefix::create(): hash_hmac('sha1', $name.'v2', $key).'|'.
+func cookiePrefix(name string, key []byte) string {
+	m := hmac.New(sha1.New, key)
+	m.Write([]byte(name + "v2"))
+	return hex.EncodeToString(m.Sum(nil)) + "|"
+}
+
+// PHPSerialize writes v as PHP serialize() output, for example the serialized attributes of an
+// encrypted Laravel session. It accepts the types Encrypt does.
+func PHPSerialize(v any) (string, error) { return phpMarshal(v) }
+
+// PHPUnserialize parses PHP serialize() output into the types Decrypt returns. It rejects trailing
+// data and nesting deeper than 128 levels, and never instantiates PHP objects.
+func PHPUnserialize(s string) (any, error) { return phpUnmarshal(s) }
+
 func (e *Encrypter) encrypt(plain []byte) (string, error) {
 	iv := make([]byte, e.ivLen())
 	if _, err := rand.Read(iv); err != nil {
@@ -182,7 +262,7 @@ func (e *Encrypter) encrypt(plain []byte) (string, error) {
 	if e.info.aead {
 		p.Tag = base64.StdEncoding.EncodeToString(tagRaw)
 	} else {
-		p.MAC = e.hash(ivB64, valueB64)
+		p.MAC = hash(e.key, ivB64, valueB64)
 	}
 
 	jsonBytes, err := json.Marshal(p)
@@ -198,28 +278,18 @@ func (e *Encrypter) decrypt(encoded string) ([]byte, error) {
 		return nil, err
 	}
 
-	block, err := aes.NewCipher(e.key)
-	if err != nil {
-		return nil, err
-	}
-
 	if e.info.aead {
 		// Laravel's ensureTagIsValid: an AEAD payload needs a 16-byte tag.
 		if len(p.tag) != 16 {
 			return nil, ErrDecrypt
 		}
-		gcm, err := cipher.NewGCMWithNonceSize(block, e.ivLen())
-		if err != nil {
-			return nil, err
+		// Try the current key first, then the previous keys, until one authenticates.
+		for _, key := range e.allKeys() {
+			if out, ok := e.openGCM(key, p); ok {
+				return out, nil
+			}
 		}
-		combined := make([]byte, 0, len(p.value)+len(p.tag))
-		combined = append(combined, p.value...)
-		combined = append(combined, p.tag...)
-		out, err := gcm.Open(nil, p.iv, combined, nil)
-		if err != nil {
-			return nil, ErrDecrypt
-		}
-		return out, nil
+		return nil, ErrDecrypt
 	}
 
 	// A CBC payload must not carry a tag.
@@ -227,12 +297,37 @@ func (e *Encrypter) decrypt(encoded string) ([]byte, error) {
 		return nil, ErrDecrypt
 	}
 
-	// CBC: authenticate (HMAC) before decrypting.
-	expected := e.hash(p.ivB64, p.valueB64)
-	if subtle.ConstantTimeCompare([]byte(expected), []byte(p.mac)) != 1 {
-		return nil, ErrInvalidMAC
+	// CBC: authenticate (HMAC) before decrypting, and use the first key whose MAC matches.
+	for _, key := range e.allKeys() {
+		expected := hash(key, p.ivB64, p.valueB64)
+		if subtle.ConstantTimeCompare([]byte(expected), []byte(p.mac)) == 1 {
+			return e.decryptCBC(key, p)
+		}
 	}
+	return nil, ErrInvalidMAC
+}
 
+func (e *Encrypter) openGCM(key []byte, p *payload) ([]byte, bool) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, false
+	}
+	gcm, err := cipher.NewGCMWithNonceSize(block, e.ivLen())
+	if err != nil {
+		return nil, false
+	}
+	combined := make([]byte, 0, len(p.value)+len(p.tag))
+	combined = append(combined, p.value...)
+	combined = append(combined, p.tag...)
+	out, err := gcm.Open(nil, p.iv, combined, nil)
+	return out, err == nil
+}
+
+func (e *Encrypter) decryptCBC(key []byte, p *payload) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
 	if len(p.value) == 0 || len(p.value)%block.BlockSize() != 0 {
 		return nil, ErrDecrypt
 	}
@@ -302,8 +397,8 @@ func (e *Encrypter) parsePayload(encoded string) (*payload, error) {
 }
 
 // hash is Laravel's HMAC: hash_hmac('sha256', iv.value, key) over the base64 strings.
-func (e *Encrypter) hash(ivB64, valueB64 string) string {
-	m := hmac.New(sha256.New, e.key)
+func hash(key []byte, ivB64, valueB64 string) string {
+	m := hmac.New(sha256.New, key)
 	m.Write([]byte(ivB64))
 	m.Write([]byte(valueB64))
 	return hex.EncodeToString(m.Sum(nil))

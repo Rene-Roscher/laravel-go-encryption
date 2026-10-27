@@ -116,9 +116,9 @@ func TestParseKey_Forms(t *testing.T) {
 	if k, err := ParseKey(rawKey); err != nil || string(k) != rawKey {
 		t.Fatalf("raw form: %v got=%q", err, string(k))
 	}
-	// malformed base64: prefix
-	if _, err := ParseKey("base64:!!!notbase64!!!"); err == nil {
-		t.Error("malformed base64: payload must error")
+	// A malformed base64: value decodes leniently, as in Laravel, to the wrong length.
+	if k, err := ParseKey("base64:!!!notbase64!!!"); err != nil || len(k) == 32 {
+		t.Errorf("malformed base64: value: %v len=%d", err, len(k))
 	}
 }
 

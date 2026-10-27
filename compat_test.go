@@ -437,7 +437,12 @@ func TestKeyForms(t *testing.T) {
 		{"raw 32 characters", rawText, []byte(rawText), nil},
 		{"raw 16 characters", "0123456789abcdef", []byte("0123456789abcdef"), nil},
 		{"empty", "", nil, ErrEmptyKey},
-		{"malformed base64: value", "base64:!!!not base64!!!", nil, ErrUnsupportedCipher},
+		// Laravel decodes the base64: form with PHP's lenient base64_decode: padding is optional
+		// and characters outside the alphabet are skipped.
+		{"unpadded base64:", "base64:" + strings.TrimRight(b64Encode(bytes.Repeat([]byte{0xfb}, 32)), "="), bytes.Repeat([]byte{0xfb}, 32), nil},
+		{"base64: with a newline", "base64:" + b64Encode(bytes.Repeat([]byte{0xfb}, 32)) + "\n", bytes.Repeat([]byte{0xfb}, 32), nil},
+		// PHP: bin2hex(base64_decode("!!!not base64!!!")) === "9e8b5b6ac7ba"
+		{"malformed base64: value", "base64:!!!not base64!!!", []byte{0x9e, 0x8b, 0x5b, 0x6a, 0xc7, 0xba}, nil},
 	} {
 		got, err := ParseKey(c.in)
 		if !errors.Is(err, c.wantErr) || !bytes.Equal(got, c.want) {
@@ -454,6 +459,10 @@ func TestKeyForms(t *testing.T) {
 	}
 	if _, err := New(rawText, "aes-256-cbc"); err != nil {
 		t.Errorf("raw 32-character key rejected: %v", err)
+	}
+	// A malformed value decodes to the wrong length, which New rejects.
+	if _, err := New("base64:!!!not base64!!!", "aes-256-cbc"); !errors.Is(err, ErrUnsupportedCipher) {
+		t.Errorf("malformed base64: key: err = %v, want ErrUnsupportedCipher", err)
 	}
 }
 
