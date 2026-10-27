@@ -71,14 +71,22 @@ jobs:
           php-version: '8.3'
           extensions: openssl, mbstring
           tools: composer
-      - name: Install real illuminate/encryption ^${{ matrix.laravel }}
-        run: composer require "illuminate/encryption:^${{ matrix.laravel }}.0" --no-interaction --no-progress
+      - name: Install the real Laravel ${{ matrix.laravel }} encryption, cookie, session and database packages
+        run: >
+          composer require
+          "illuminate/encryption:^${{ matrix.laravel }}.0"
+          "illuminate/cookie:^${{ matrix.laravel }}.0"
+          "illuminate/session:^${{ matrix.laravel }}.0"
+          "illuminate/database:^${{ matrix.laravel }}.0"
+          --no-interaction --no-progress
 
       # Laravel -> Go: PHP generates fresh vectors, Go decrypts them.
       - name: Generate Laravel vectors
-        run: php scripts/generate_vectors.php
+        run: |
+          php scripts/generate_vectors.php
+          php scripts/generate_app_vectors.php
       - name: Go decrypts Laravel vectors
-        run: go test -run 'TestDecryptLaravel|TestLaravel' -v ./...
+        run: go test -count=1 ./...
 
       # Go -> Laravel: Go encrypts, PHP decrypts and asserts.
       - name: Laravel decrypts Go vectors

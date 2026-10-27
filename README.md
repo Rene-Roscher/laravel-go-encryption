@@ -17,6 +17,9 @@ same key. The same library exists for
 - Both Laravel paths: `EncryptString`/`DecryptString` (raw strings) and `Encrypt`/`Decrypt`
   (the PHP-`serialize` path — strings, numbers, bools, null, arrays and nested structures).
 - Accepts the Laravel `APP_KEY` `base64:...` form, a bare base64 key, or raw key bytes.
+- Key rotation: previous keys are tried on decryption, like `APP_PREVIOUS_KEYS` in Laravel 11+.
+- Laravel's cookies (`EncryptCookies`), encrypted sessions and Eloquent `encrypted` casts, checked
+  against the real Laravel classes.
 - Constant-time MAC verification (CBC) / AEAD tag verification (GCM).
 - Tampered, wrong-key and malformed payloads are **always rejected** with typed errors.
 - Zero dependencies (standard library only).
@@ -111,6 +114,45 @@ var got Config                          // typed
 _ = json.Unmarshal([]byte(plain), &got)
 ```
 
+## Key rotation, cookies, sessions and Eloquent casts
+
+**Previous keys.** Laravel 11 introduced `APP_PREVIOUS_KEYS`. Payloads are always encrypted with
+the current key, and decryption falls back to the previous keys:
+
+```go
+enc, err := laravelcrypt.New(os.Getenv("APP_KEY"), "aes-256-cbc",
+    laravelcrypt.WithPreviousKeys(strings.Split(os.Getenv("APP_PREVIOUS_KEYS"), ",")...))
+```
+
+**Cookies.** Laravel's `EncryptCookies` middleware encrypts `prefix + value` without
+serialization, where the prefix binds the cookie to its name and the key. `EncryptCookie` and
+`DecryptCookie` do the same; a cookie issued for another name, or by another application, is
+`ErrInvalidCookie`. The prefix is also accepted for any previous key. Pass the raw cookie value,
+URL-decoded if it comes from a `Cookie` header.
+
+```go
+cookie, err := enc.EncryptCookie("laravel_session", sessionID)
+sessionID, err := enc.DecryptCookie("laravel_session", cookieFromLaravel)
+```
+
+**Sessions.** With `session.encrypt` Laravel stores `Crypt::encrypt()` of the already serialized
+attributes, so the payload decrypts to a string that holds the serialization (PHP's, or JSON with
+`session.serialization = json`):
+
+```go
+serialized, err := enc.Decrypt(sessionPayload) // any, holding a string
+attrs, err := laravelcrypt.PHPUnserialize(serialized.(string)) // map[string]any
+userID := attrs.(map[string]any)["user_id"]    // int64
+
+// ...and the way back:
+inner, err := laravelcrypt.PHPSerialize(attrs)
+payload, err := enc.Encrypt(inner)
+```
+
+**Eloquent casts.** `encrypted` is `Crypt::encryptString()` of the value; `encrypted:array`,
+`:object` and `:collection` encrypt its JSON. Use `DecryptString` / `EncryptString` and
+`encoding/json`.
+
 ## Wire format (identical to Laravel)
 
 ```
@@ -141,13 +183,14 @@ make interop                        # all of the below vs the REAL Laravel encry
 ```
 
 `fixtures/vectors.json` holds payloads produced by the real `illuminate/encryption`: all four
-ciphers, strings (unicode, binary, block-aligned, long) and serialized values (floats, nested
-arrays, mixed keys, objects).
+ciphers, strings (unicode, binary, block-aligned, long), serialized values (floats, nested arrays,
+mixed keys, objects) and payloads of a rotated key. `fixtures/app-vectors.json` holds random-key
+payloads and what the real `EncryptCookies` logic, `EncryptedStore` and Eloquent casts produce.
 
 CI runs, for Laravel 10, 11, 12 and 13 with the real `illuminate/encryption`:
 
-- **Laravel → Go**: `scripts/generate_vectors.php` → `TestDecryptLaravelVectors` and the
-  serialized-value tests.
+- **Laravel → Go**: `scripts/generate_vectors.php` and `scripts/generate_app_vectors.php` → the
+  `TestDecryptLaravel*`, serialized-value and app-layer tests.
 - **Go → Laravel**: `go run ./cmd/genvectors` → `scripts/verify_go_vectors.php`.
 - **Malformed input**: `go run ./cmd/mutations` emits valid and mutated payloads (edited
   fields, odd JSON types, broken base64) with Go's verdict on each;
