@@ -17,6 +17,8 @@ same key. The same library exists for
 - Both Laravel paths: `EncryptString`/`DecryptString` (raw strings) and `Encrypt`/`Decrypt`
   (the PHP-`serialize` path — strings, numbers, bools, null, arrays and nested structures).
 - Accepts the Laravel `APP_KEY` `base64:...` form, a bare base64 key, or raw key bytes.
+- `Seal` / `Open`: expiring, scoped payloads that Laravel and the Rust and Node.js packages read too
+  (Interop Envelope).
 - Key rotation: previous keys are tried on decryption, like `APP_PREVIOUS_KEYS` in Laravel 11+.
 - Laravel's cookies (`EncryptCookies`), encrypted sessions and Eloquent `encrypted` casts, checked
   against the real Laravel classes.
@@ -156,6 +158,37 @@ like `Encrypter::appearsEncrypted` in Laravel 12+.
 `:object` and `:collection` encrypt its JSON. Use `DecryptString` / `EncryptString` and
 `encoding/json`.
 
+## Interop Envelope: expiry and scope
+
+`Seal` and `Open` add what the encrypter does not have: an expiry, a start time and a scope that a
+token may be used for. It is an **Interop Envelope**, a small JSON document (`typ`, `v`, `iat`,
+`nbf`, `exp`, `scope`, `data`) encrypted with `EncryptString`, so the scope and the timestamps are
+authenticated like the rest. The Laravel package
+[`rene-roscher/laravel-interop`](https://github.com/Rene-Roscher/laravel-interop) and the Rust and
+Node.js packages read and write the same format; its README describes it.
+
+```go
+// Seal: what it is for, what it carries, when it stops working (chosen on every call).
+token, err := enc.Seal("password-reset", map[string]any{"user": 7}, laravelcrypt.ExpiresIn(time.Hour))
+
+// Open: say what you expect it to be for.
+opened, err := enc.Open(token, "password-reset")
+var data struct{ User int `json:"user"` }
+err = opened.Decode(&data)
+opened.ExpiresAt // zero when there is none
+
+switch {
+case errors.Is(err, laravelcrypt.ErrExpired): // ...
+case errors.Is(err, laravelcrypt.ErrScopeMismatch): // ...
+}
+```
+
+`ExpiresIn`, `ExpiresAt` or `NeverExpires` has to be chosen on every `Seal`. `WithNotBefore` (Seal),
+`WithLeeway` (Open) and `WithClock` (both, for tests) are the options. Open fails with
+`ErrEnvelopeInvalid`, `ErrUnsupportedVersion`, `ErrScopeMismatch`, `ErrNotYetValid` or `ErrExpired`;
+a token that does not decrypt keeps the errors of `DecryptString`, and the previous keys apply.
+`EnvelopeVerdict(err)` names the outcome in the words all implementations share.
+
 ## Wire format (identical to Laravel)
 
 ```
@@ -184,6 +217,9 @@ make race                           # with the race detector
 make fuzz                           # fuzz the decoder
 make interop                        # all of the below vs the REAL Laravel encrypter (needs PHP)
 ```
+
+`fixtures/envelope-vectors.json` holds Interop Envelope tokens of every shape, made by the real Laravel
+encrypter and `laravel-interop`, with the verdict every implementation has to reach.
 
 `fixtures/vectors.json` holds payloads produced by the real `illuminate/encryption`: all four
 ciphers, strings (unicode, binary, block-aligned, long), serialized values (floats, nested arrays,

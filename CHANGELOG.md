@@ -22,6 +22,8 @@ All notable changes to this project are documented here. The format is based on
   the unserializer panic or reserve huge amounts of memory.
 
 ### Added
+- `Seal` / `Open`: the Interop Envelope, an expiring and scoped payload format shared with
+  `rene-roscher/laravel-interop` and the Rust and Node.js packages.
 - `AppearsEncrypted`, like Laravel's `Encrypter::appearsEncrypted`, compared with Laravel on the
   mutated payloads.
 - `WithPreviousKeys` option (previous keys, as in Laravel 11+), `EncryptCookie` / `DecryptCookie`
