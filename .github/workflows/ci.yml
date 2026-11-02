@@ -85,6 +85,8 @@ jobs:
         run: |
           php scripts/generate_vectors.php
           php scripts/generate_app_vectors.php
+          php vendor/rene-roscher/laravel-interop/bin/generate-vectors.php
+          cp vendor/rene-roscher/laravel-interop/fixtures/envelope-vectors.json fixtures/envelope-vectors.json
       - name: Go decrypts Laravel vectors
         run: go test -count=1 ./...
 
@@ -95,3 +97,10 @@ jobs:
       # Malformed input: Go and Laravel must accept and reject exactly the same payloads.
       - name: Go and Laravel judge mutated payloads alike
         run: go run ./cmd/mutations | php scripts/verify_mutations.php
+
+      # Interop Envelope: the Laravel package (rene-roscher/laravel-interop) judges the tokens this
+      # package issues, and our copy of its vectors must still be the package's.
+      - name: Laravel package judges our envelope tokens
+        run: go run ./cmd/envelope | php vendor/rene-roscher/laravel-interop/bin/verify-tokens.php
+      - name: Envelope vectors are the Laravel package's
+        run: php vendor/rene-roscher/laravel-interop/e2e/check-fixtures.php fixtures/envelope-vectors.json
